@@ -1,3 +1,15 @@
+:root {
+  --primary-color: #0f79f3;
+  --secondary-color: #475569;
+  --accent-color: #2ed47e;
+  --brand-font: "Outfit", sans-serif;
+}
+
+/* Update existing colors to use variables */
+.btn-primary { background-color: var(--primary-color); }
+.text-primary { color: var(--primary-color); }
+.bg-primary { background-color: var(--primary-color); }
+/* Add more variable usage as needed */
 @charset "UTF-8";
 /**
 @File: Fila Template Styles
