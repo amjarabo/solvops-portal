@@ -40,8 +40,8 @@
         <div class="sidebar-area" id="sidebar-area">
             <div class="logo position-relative d-flex align-items-center justify-content-between">
                 <a href="index.html" class="d-block text-decoration-none position-relative">
-                    <img src="assets/images/logo-icon.png" alt="logo-icon">
-                    <span class="logo-text text-secondary fw-semibold">Fila</span>
+					<img src="assets/images/logo-icon.png" alt="Logo" class="logo-image">
+					<span class="logo-text company-name text-secondary fw-semibold">SolvOps</span>
                 </a> 
                 <button class="sidebar-burger-menu-close bg-transparent py-3 border-0 opacity-0 z-n1 position-absolute top-50 end-0 translate-middle-y" id="sidebar-burger-menu-close">
                     <span class="border-1 d-block for-dark-burger" style="border-bottom: 1px solid #475569; height: 1px; width: 25px; transform: rotate(45deg);"></span>
@@ -2792,8 +2792,443 @@
 
 <!-- Multi-Brand System -->
 <script>
-// Add the entire JavaScript code from the second artifact here
-// (I'll give you the condensed version below)
+// Multi-Brand Dynamic Loading System
+class BrandManager {
+  constructor(supabaseClient) {
+    this.supabase = supabaseClient;
+    this.currentBranding = null;
+    this.defaultBranding = {
+      primary_color: '#0f79f3',
+      secondary_color: '#475569',
+      accent_color: '#2ed47e',
+      logo_url: '/assets/images/logo-icon.png',
+      company_name_display: 'Portal',
+      brand_font: 'Outfit'
+    };
+  }
+
+  // Load and apply user's branding
+  async loadUserBranding(userId = null) {
+    try {
+      const { data, error } = await this.supabase
+        .rpc('get_user_branding', userId ? { target_user_id: userId } : {});
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        this.currentBranding = data[0];
+        this.applyBranding(this.currentBranding);
+      } else {
+        this.applyBranding(this.defaultBranding);
+      }
+    } catch (error) {
+      console.error('Error loading branding:', error);
+      this.applyBranding(this.defaultBranding);
+    }
+  }
+
+  // Apply branding to the interface
+  applyBranding(branding) {
+    // Update CSS custom properties
+    const root = document.documentElement;
+    root.style.setProperty('--primary-color', branding.primary_color || this.defaultBranding.primary_color);
+    root.style.setProperty('--secondary-color', branding.secondary_color || this.defaultBranding.secondary_color);
+    root.style.setProperty('--accent-color', branding.accent_color || this.defaultBranding.accent_color);
+
+    // Update logo
+    this.updateLogo(branding);
+    
+    // Update company name/title
+    this.updateCompanyName(branding);
+    
+    // Update favicon if provided
+    this.updateFavicon(branding);
+    
+    // Update font if specified
+    this.updateFont(branding);
+    
+    // Update page title
+    this.updatePageTitle(branding);
+  }
+
+  // Update logo in sidebar and header
+  updateLogo(branding) {
+    const logoImages = document.querySelectorAll('.logo img, .sidebar-area .logo img');
+    const logoUrl = branding.logo_url || this.defaultBranding.logo_url;
+    
+    logoImages.forEach(img => {
+      if (logoUrl) {
+        img.src = logoUrl;
+        img.alt = `${branding.company_name_display || 'Company'} Logo`;
+      }
+    });
+  }
+
+  // Update company name in sidebar and headers
+  updateCompanyName(branding) {
+    const companyNameElements = document.querySelectorAll('.logo-text, .company-name');
+    const displayName = branding.company_name_display || 'Portal';
+    
+    companyNameElements.forEach(element => {
+      element.textContent = displayName;
+    });
+
+    // Update any references to "Fila" in the template
+    const filaReferences = document.querySelectorAll('*');
+    filaReferences.forEach(element => {
+      if (element.textContent && element.textContent.includes('Fila') && !element.querySelector('script')) {
+        element.textContent = element.textContent.replace(/Fila/g, displayName);
+      }
+    });
+  }
+
+  // Update favicon
+  updateFavicon(branding) {
+    if (branding.favicon_url) {
+      let favicon = document.querySelector('link[rel="icon"]');
+      if (!favicon) {
+        favicon = document.createElement('link');
+        favicon.rel = 'icon';
+        document.head.appendChild(favicon);
+      }
+      favicon.href = branding.favicon_url;
+    }
+  }
+
+  // Update font family
+  updateFont(branding) {
+    if (branding.brand_font && branding.brand_font !== 'Outfit') {
+      // Add Google Font import if needed
+      const fontLink = document.createElement('link');
+      fontLink.href = `https://fonts.googleapis.com/css2?family=${branding.brand_font.replace(' ', '+')}:wght@300;400;500;600;700&display=swap`;
+      fontLink.rel = 'stylesheet';
+      document.head.appendChild(fontLink);
+
+      // Apply font to CSS custom property
+      document.documentElement.style.setProperty('--brand-font', `"${branding.brand_font}", sans-serif`);
+    }
+  }
+
+  // Update page title
+  updatePageTitle(branding) {
+    const title = branding.portal_title || `${branding.company_name_display} Portal` || 'Client Portal';
+    document.title = title;
+  }
+
+  // Get available brand templates
+  async getBrandTemplates() {
+    const { data, error } = await this.supabase
+      .from('brand_templates')
+      .select('*')
+      .eq('is_active', true)
+      .order('template_name');
+
+    return { data, error };
+  }
+
+  // Apply a brand template to a user
+  async applyBrandTemplate(userId, templateId, companyDisplayName, logoUrl) {
+    const { data, error } = await this.supabase
+      .rpc('apply_brand_template', {
+        target_user_id: userId,
+        template_id: templateId,
+        company_display_name: companyDisplayName,
+        logo_url: logoUrl
+      });
+
+    if (!error) {
+      // Reload branding after applying template
+      await this.loadUserBranding(userId);
+    }
+
+    return { data, error };
+  }
+
+  // Update user's custom branding
+  async updateUserBranding(userId, brandingData) {
+    const { data, error } = await this.supabase
+      .from('user_profiles')
+      .update({
+        logo_url: brandingData.logo_url,
+        primary_color: brandingData.primary_color,
+        secondary_color: brandingData.secondary_color,
+        accent_color: brandingData.accent_color,
+        company_name_display: brandingData.company_name_display,
+        favicon_url: brandingData.favicon_url,
+        brand_font: brandingData.brand_font,
+        portal_title: brandingData.portal_title,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+
+    if (!error) {
+      await this.loadUserBranding(userId);
+    }
+
+    return { data, error };
+  }
+
+  // Upload brand asset (logo, favicon, etc.)
+  async uploadBrandAsset(file, assetType, userId) {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/${assetType}-${Date.now()}.${fileExt}`;
+    
+    // Upload file to Supabase Storage
+    const { data: uploadData, error: uploadError } = await this.supabase.storage
+      .from('brand-assets')
+      .upload(fileName, file);
+
+    if (uploadError) throw uploadError;
+
+    // Get public URL
+    const { data: { publicUrl } } = this.supabase.storage
+      .from('brand-assets')
+      .getPublicUrl(fileName);
+
+    // Save asset record
+    const { data: assetData, error: assetError } = await this.supabase
+      .from('brand_assets')
+      .insert({
+        user_id: userId,
+        asset_type: assetType,
+        asset_url: publicUrl,
+        file_name: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+        uploaded_by: this.supabase.auth.user()?.id
+      });
+
+    return { url: publicUrl, data: assetData, error: assetError };
+  }
+}
+
+// Admin Brand Management Interface
+class AdminBrandManager {
+  constructor(brandManager) {
+    this.bm = brandManager;
+  }
+
+  // Render admin brand management interface
+  async renderBrandManagement() {
+    const container = document.getElementById('admin-brand-management');
+    if (!container) return;
+
+    const { data: clients } = await dashboardManager.getAllClients();
+    const { data: templates } = await this.bm.getBrandTemplates();
+
+    let html = `
+      <div class="admin-brand-management">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2>Brand Management</h2>
+          <button class="btn btn-primary" onclick="adminBrandManager.showBrandTemplateModal()">
+            View Templates
+          </button>
+        </div>
+
+        <div class="row">
+          ${clients.map(client => this.renderClientBrandCard(client)).join('')}
+        </div>
+      </div>
+    `;
+
+    container.innerHTML = html;
+  }
+
+  // Render individual client brand card
+  renderClientBrandCard(client) {
+    return `
+      <div class="col-lg-6 mb-4">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+              <h5>${client.company_name}</h5>
+              <small class="text-muted">${client.contact_email}</small>
+            </div>
+            <div class="brand-preview" style="
+              width: 40px; 
+              height: 40px; 
+              background-color: ${client.primary_color || '#0f79f3'}; 
+              border-radius: 8px;
+            "></div>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-6">
+                <small class="text-muted">Primary Color</small>
+                <div class="d-flex align-items-center">
+                  <div class="color-swatch me-2" style="
+                    width: 20px; 
+                    height: 20px; 
+                    background-color: ${client.primary_color || '#0f79f3'}; 
+                    border-radius: 4px; 
+                    border: 1px solid #ddd;
+                  "></div>
+                  <span class="small">${client.primary_color || '#0f79f3'}</span>
+                </div>
+              </div>
+              <div class="col-6">
+                <small class="text-muted">Logo</small>
+                <div>${client.logo_url ? '<i class="material-symbols-outlined text-success">check_circle</i> Uploaded' : '<i class="material-symbols-outlined text-warning">pending</i> Default'}</div>
+              </div>
+            </div>
+            <div class="mt-3">
+              <button class="btn btn-sm btn-outline-primary" 
+                      onclick="adminBrandManager.showClientBrandModal('${client.user_id}')">
+                Customize Branding
+              </button>
+              <button class="btn btn-sm btn-outline-info" 
+                      onclick="adminBrandManager.previewClientBranding('${client.user_id}')">
+                Preview Portal
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Show client branding customization modal
+  async showClientBrandModal(userId) {
+    const { data: branding } = await this.bm.supabase.rpc('get_user_branding', { target_user_id: userId });
+    const { data: templates } = await this.bm.getBrandTemplates();
+    const clientBrand = branding[0] || {};
+
+    const modalHTML = `
+      <div class="modal fade" id="clientBrandModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Customize Client Branding</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>Quick Templates</h6>
+                  <div class="template-grid">
+                    ${templates.map(template => `
+                      <div class="template-option p-2 border rounded mb-2 cursor-pointer" 
+                           onclick="adminBrandManager.selectTemplate('${template.id}', '${userId}')"
+                           style="background: linear-gradient(135deg, ${template.primary_color} 0%, ${template.secondary_color} 100%);">
+                        <div class="text-white small">${template.template_name}</div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <h6>Custom Branding</h6>
+                  <form id="customBrandForm">
+                    <div class="mb-3">
+                      <label class="form-label">Company Display Name</label>
+                      <input type="text" class="form-control" name="company_name_display" 
+                             value="${clientBrand.company_name_display || ''}">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Portal Title</label>
+                      <input type="text" class="form-control" name="portal_title" 
+                             value="${clientBrand.portal_title || ''}">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Primary Color</label>
+                      <input type="color" class="form-control" name="primary_color" 
+                             value="${clientBrand.primary_color || '#0f79f3'}">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Secondary Color</label>
+                      <input type="color" class="form-control" name="secondary_color" 
+                             value="${clientBrand.secondary_color || '#475569'}">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Logo Upload</label>
+                      <input type="file" class="form-control" name="logo_file" accept="image/*">
+                      ${clientBrand.logo_url ? `<small class="text-muted">Current: ${clientBrand.logo_url}</small>` : ''}
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" onclick="adminBrandManager.saveClientBranding('${userId}')">
+                Save Branding
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    const modal = new bootstrap.Modal(document.getElementById('clientBrandModal'));
+    modal.show();
+  }
+
+  // Apply selected template
+  async selectTemplate(templateId, userId) {
+    const companyName = document.querySelector('input[name="company_name_display"]').value;
+    await this.bm.applyBrandTemplate(userId, templateId, companyName);
+    
+    // Close modal and refresh
+    bootstrap.Modal.getInstance(document.getElementById('clientBrandModal')).hide();
+    this.renderBrandManagement();
+  }
+
+  // Save custom branding
+  async saveClientBranding(userId) {
+    const form = document.getElementById('customBrandForm');
+    const formData = new FormData(form);
+    
+    const brandingData = {
+      company_name_display: formData.get('company_name_display'),
+      portal_title: formData.get('portal_title'),
+      primary_color: formData.get('primary_color'),
+      secondary_color: formData.get('secondary_color')
+    };
+
+    // Handle logo upload if provided
+    const logoFile = formData.get('logo_file');
+    if (logoFile && logoFile.size > 0) {
+      try {
+        const { url } = await this.bm.uploadBrandAsset(logoFile, 'logo', userId);
+        brandingData.logo_url = url;
+      } catch (error) {
+        console.error('Logo upload failed:', error);
+        alert('Logo upload failed. Other changes will still be saved.');
+      }
+    }
+
+    await this.bm.updateUserBranding(userId, brandingData);
+    
+    // Close modal and refresh
+    bootstrap.Modal.getInstance(document.getElementById('clientBrandModal')).hide();
+    this.renderBrandManagement();
+  }
+
+  // Preview how client sees their portal
+  async previewClientBranding(userId) {
+    await brandManager.loadUserBranding(userId);
+    alert('Branding preview applied! Refresh page to return to your admin branding.');
+  }
+}
+
+// Initialize the multi-brand system
+const brandManager = new BrandManager(supabase);
+const adminBrandManager = new AdminBrandManager(brandManager);
+
+// Auto-load branding when page loads
+document.addEventListener('DOMContentLoaded', async () => {
+  await brandManager.loadUserBranding();
+  
+  // If admin, show brand management
+  if (dashboardManager.userRole === 'admin') {
+    await adminBrandManager.renderBrandManagement();
+  }
+});
+
+// Load branding after login
+document.addEventListener('userLoggedIn', async (event) => {
+  await brandManager.loadUserBranding(event.detail.userId);
+});
 </script>
     </body>
 </html>
