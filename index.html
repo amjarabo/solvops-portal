@@ -2,9 +2,25 @@
 <html lang="zxx">
 	<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script>
-// Simple test - just log "SolvOps" to console when page loads
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('SolvOps portal loaded');
+document.addEventListener('DOMContentLoaded', async function() {
+  // Connect to your Supabase database
+  const supabase = window.supabase.createClient(
+    'https://fjywrhjkheanwxyxkofl.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqeXdyaGpraGVhbnd4eXhrb2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MDk5MjUsImV4cCI6MjA3MzE4NTkyNX0.6Q_Y3hnE7btQtwyfZCTXWdtO_oB3qLBCu0i0NJ6O9tE'
+  );
+  
+  // Get SolvOps branding from database
+  const { data } = await supabase.from('user_profiles').select('*').eq('role', 'admin').single();
+  
+  if (data) {
+    console.log('Loaded SolvOps branding:', data.company_name_display);
+    
+    // Update the company name from "Fila" to "SolvOps"
+    const logoText = document.querySelector('.logo-text');
+    if (logoText) {
+      logoText.textContent = data.company_name_display || 'SolvOps';
+    }
+  }
 });
 </script>
     <head>
