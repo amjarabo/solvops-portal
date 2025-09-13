@@ -76,6 +76,58 @@ document.addEventListener('DOMContentLoaded', async function() {
   };
 });
 </script>
+	<script>
+// Add this after the existing window.listClients function
+
+window.previewClient = async function(companyName) {
+  const supabase = window.supabase.createClient(
+    'https://fjywrhjkheanwxyxkofl.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqeXdyaGpraGVhbnd4eXhrb2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MDk5MjUsImV4cCI6MjA3MzE4NTkyNX0.6Q_Y3hnE7btQtwyfZCTXWdtO_oB3qLBCu0i0NJ6O9tE'
+  );
+  
+  // Get client branding data
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('company_name', companyName)
+    .single();
+    
+  if (data) {
+    console.log(`Applying ${companyName} branding:`, data);
+    
+    // Update company name in sidebar
+    const logoText = document.querySelector('.logo-text');
+    if (logoText) {
+      logoText.textContent = data.company_name_display;
+    }
+    
+    // Update primary color
+    if (data.primary_color) {
+      document.documentElement.style.setProperty('--primary-color', data.primary_color);
+      
+      // Apply to visible elements
+      const primaryElements = document.querySelectorAll('.bg-primary, .btn-primary, .text-primary');
+      primaryElements.forEach(el => {
+        if (el.classList.contains('bg-primary')) {
+          el.style.backgroundColor = data.primary_color;
+        }
+        if (el.classList.contains('text-primary')) {
+          el.style.color = data.primary_color;
+        }
+      });
+    }
+    
+    console.log(`Portal now showing ${data.company_name_display} branding!`);
+  } else {
+    console.log('Client not found');
+  }
+};
+
+// Function to reset to admin view
+window.resetToAdmin = function() {
+  previewClient('SolvOps');
+};
+</script>
     <head>
 		<!-- Required meta tags -->
 		<meta charset="utf-8">
