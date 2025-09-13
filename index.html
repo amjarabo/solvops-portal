@@ -3230,25 +3230,5 @@ document.addEventListener('userLoggedIn', async (event) => {
   await brandManager.loadUserBranding(event.detail.userId);
 });
 </script>
-		<script>
-// Auto-load SolvOps branding when page loads
-document.addEventListener('DOMContentLoaded', async function() {
-  const supabase = window.supabase.createClient(
-    'https://fjywrhjkheanwxyxkofl.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqeXdyaGpraGVhbnd4eXhrb2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MDk5MjUsImV4cCI6MjA3MzE4NTkyNX0.6Q_Y3hnE7btQtwyfZCTXWdtO_oB3qLBCu0i0NJ6O9tE'
-  );
-  
-  // Load branding data
-  const { data } = await supabase.from('user_profiles').select('*').eq('role', 'admin').single();
-  
-  if (data && data.company_name_display) {
-    // Update company name in logo
-    const logoText = document.querySelector('.logo-text');
-    if (logoText) {
-      logoText.textContent = data.company_name_display;
-    }
-  }
-});
-</script>
     </body>
 </html>
