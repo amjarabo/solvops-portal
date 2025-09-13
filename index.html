@@ -3,130 +3,51 @@
 	<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
-  // Connect to your Supabase database
+  // Connect to Supabase
   const supabase = window.supabase.createClient(
     'https://fjywrhjkheanwxyxkofl.supabase.co',
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqeXdyaGpraGVhbnd4eXhrb2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MDk5MjUsImV4cCI6MjA3MzE4NTkyNX0.6Q_Y3hnE7btQtwyfZCTXWdtO_oB3qLBCu0i0NJ6O9tE'
   );
   
-  // Get SolvOps branding from database
+  // Load initial SolvOps branding
   const { data } = await supabase.from('user_profiles').select('*').eq('role', 'admin').single();
-  
   if (data) {
-    console.log('Loaded SolvOps branding:', data.company_name_display);
-    
-    // Update the company name from "Fila" to "SolvOps"
     const logoText = document.querySelector('.logo-text');
-    if (logoText) {
-      logoText.textContent = data.company_name_display || 'SolvOps';
-    }
-  }
-});
-</script>
-	<script>
-document.addEventListener('DOMContentLoaded', async function() {
-  // Connect to your Supabase database
-  const supabase = window.supabase.createClient(
-    'https://fjywrhjkheanwxyxkofl.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqeXdyaGpraGVhbnd4eXhrb2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MDk5MjUsImV4cCI6MjA3MzE4NTkyNX0.6Q_Y3hnE7btQtwyfZCTXWdtO_oB3qLBCu0i0NJ6O9tE'
-  );
-  
-  // Get SolvOps branding from database
-  const { data } = await supabase.from('user_profiles').select('*').eq('role', 'admin').single();
-  
-  if (data) {
-    console.log('Loaded SolvOps branding:', data.company_name_display);
-    
-    // Update the company name from "Fila" to "SolvOps"
-    const logoText = document.querySelector('.logo-text');
-    if (logoText) {
-      logoText.textContent = data.company_name_display || 'SolvOps';
-    }
+    if (logoText) logoText.textContent = data.company_name_display || 'SolvOps';
   }
 
-  // Make client functions globally accessible
+  // Make all functions global
+  window.supabaseClient = supabase;
+  
   window.createClient = async function(clientData) {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .insert({
-        role: 'client',
-        company_name: clientData.company_name,
-        company_name_display: clientData.company_name_display,
-        contact_email: clientData.contact_email,
-        primary_color: clientData.primary_color || '#0f79f3'
-      });
-      
-    if (error) {
-      console.error('Error creating client:', error);
-    } else {
-      console.log('Client created successfully!');
-    }
-    
+    const { data, error } = await supabase.from('user_profiles').insert({
+      role: 'client',
+      company_name: clientData.company_name,
+      company_name_display: clientData.company_name_display,
+      contact_email: clientData.contact_email,
+      primary_color: clientData.primary_color || '#0f79f3'
+    });
+    console.log('Client created successfully!');
     return { data, error };
   };
 
   window.listClients = async function() {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
-      
+    const { data } = await supabase.from('user_profiles').select('*').order('created_at', { ascending: false });
     console.log('All clients:', data);
-    return { data, error };
+    return data;
   };
+
+  window.previewClient = async function(companyName) {
+    const { data } = await supabase.from('user_profiles').select('*').eq('company_name', companyName).single();
+    if (data) {
+      const logoText = document.querySelector('.logo-text');
+      if (logoText) logoText.textContent = data.company_name_display;
+      console.log(`Now showing ${data.company_name_display} branding!`);
+    }
+  };
+
+  console.log('All functions loaded. Try: previewClient("Acme Corp")');
 });
-</script>
-	<script>
-// Add this after the existing window.listClients function
-
-window.previewClient = async function(companyName) {
-  const supabase = window.supabase.createClient(
-    'https://fjywrhjkheanwxyxkofl.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqeXdyaGpraGVhbnd4eXhrb2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MDk5MjUsImV4cCI6MjA3MzE4NTkyNX0.6Q_Y3hnE7btQtwyfZCTXWdtO_oB3qLBCu0i0NJ6O9tE'
-  );
-  
-  // Get client branding data
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('company_name', companyName)
-    .single();
-    
-  if (data) {
-    console.log(`Applying ${companyName} branding:`, data);
-    
-    // Update company name in sidebar
-    const logoText = document.querySelector('.logo-text');
-    if (logoText) {
-      logoText.textContent = data.company_name_display;
-    }
-    
-    // Update primary color
-    if (data.primary_color) {
-      document.documentElement.style.setProperty('--primary-color', data.primary_color);
-      
-      // Apply to visible elements
-      const primaryElements = document.querySelectorAll('.bg-primary, .btn-primary, .text-primary');
-      primaryElements.forEach(el => {
-        if (el.classList.contains('bg-primary')) {
-          el.style.backgroundColor = data.primary_color;
-        }
-        if (el.classList.contains('text-primary')) {
-          el.style.color = data.primary_color;
-        }
-      });
-    }
-    
-    console.log(`Portal now showing ${data.company_name_display} branding!`);
-  } else {
-    console.log('Client not found');
-  }
-};
-
-// Function to reset to admin view
-window.resetToAdmin = function() {
-  previewClient('SolvOps');
-};
 </script>
     <head>
 		<!-- Required meta tags -->
