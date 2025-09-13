@@ -23,6 +23,49 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
 });
 </script>
+	<script>
+// Client management functions
+async function createClient(clientData) {
+  const supabase = window.supabase.createClient(
+    'https://fjywrhjkheanwxyxkofl.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqeXdyaGpraGVhbnd4eXhrb2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MDk5MjUsImV4cCI6MjA3MzE4NTkyNX0.6Q_Y3hnE7btQtwyfZCTXWdtO_oB3qLBCu0i0NJ6O9tE'
+  );
+  
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .insert({
+      role: 'client',
+      company_name: clientData.company_name,
+      company_name_display: clientData.company_name_display,
+      contact_email: clientData.contact_email,
+      primary_color: clientData.primary_color || '#0f79f3'
+    });
+    
+  if (error) {
+    console.error('Error creating client:', error);
+  } else {
+    console.log('Client created successfully:', data);
+  }
+  
+  return { data, error };
+}
+
+// Function to list all clients
+async function listClients() {
+  const supabase = window.supabase.createClient(
+    'https://fjywrhjkheanwxyxkofl.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqeXdyaGpraGVhbnd4eXhrb2ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MDk5MjUsImV4cCI6MjA3MzE4NTkyNX0.6Q_Y3hnE7btQtwyfZCTXWdtO_oB3qLBCu0i0NJ6O9tE'
+  );
+  
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+    
+  console.log('All clients:', data);
+  return { data, error };
+}
+</script>
     <head>
 		<!-- Required meta tags -->
 		<meta charset="utf-8">
